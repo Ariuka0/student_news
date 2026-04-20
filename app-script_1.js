@@ -1,34 +1,9 @@
-const DEMO_POSTS = [
-  {
-    id: "demo-1",
-    title: "Роботын баг бүсийн аварга боллоо",
-    category: "Клуб",
-    content: "Сургуулийн роботын баг амжилттай оролцож түрүүллээ.",
-    userId: "demo-user-1",
-    authorName: "Амина",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    likesCount: 0,
-    likedByMe: false,
-    isOwner: false,
-    image_url: null,
-    comments: []
-  }
-];
-
 const state = {
   supabase: null,
   demoMode: true,
-  guestMode: false,
   session: null,
-  profile: null,
   posts: [],
-  category: "Бүгд",
-  sortBy: "latest",
-  editingPostId: null,
-  loading: false,
-  selectedImageFile: null,
-  selectedImageURL: null
+  loading: false
 };
 
 document.addEventListener("DOMContentLoaded", init);
@@ -39,8 +14,10 @@ async function init() {
   bindEvents();
 }
 
+/* ── SUPABASE INIT ── */
 function setupSupabase() {
   const config = window.APP_CONFIG ?? {};
+
   if (config.SUPABASE_URL && config.SUPABASE_ANON_KEY && window.supabase) {
     state.supabase = window.supabase.createClient(
       config.SUPABASE_URL,
@@ -57,15 +34,10 @@ function setupSupabase() {
   }
 }
 
-function bindEvents() {
-  document.getElementById("postForm")?.addEventListener("submit", handlePostSubmit);
-  document.getElementById("logoutButton")?.addEventListener("click", logout);
-  document.getElementById("refreshButton")?.addEventListener("click", loadPosts);
-}
-
+/* ── BOOTSTRAP ── */
 async function bootstrap() {
   if (state.demoMode) {
-    state.posts = DEMO_POSTS;
+    state.posts = [];
     render();
     return;
   }
@@ -73,40 +45,34 @@ async function bootstrap() {
   const { data: { session } } = await state.supabase.auth.getSession();
   state.session = session;
 
-  if (!session) {
-    state.guestMode = true;
-  }
-
   await loadPosts();
   render();
 }
 
+/* ── LOAD POSTS (FIXED - NO JOIN) ── */
 async function loadPosts() {
-  if (state.demoMode) {
-    state.posts = DEMO_POSTS;
-    render();
-    return;
-  }
+  if (state.demoMode) return;
 
   state.loading = true;
 
   try {
     const { data: posts, error } = await state.supabase
       .from("news_posts")
-      .select("*")
+      .select("id,title,category,content,image_url,user_id,created_at,updated_at")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
 
     const { data: comments } = await state.supabase
       .from("comments")
-      .select("*");
+      .select("id,post_id,user_id,comment_text,created_at");
 
     const { data: likes } = await state.supabase
       .from("post_likes")
-      .select("*");
+      .select("post_id,user_id");
 
-    state.posts = posts.map(p => {
+    state.posts = (posts || []).map(p => {
+
       const postComments = (comments || [])
         .filter(c => c.post_id === p.id);
 
@@ -128,64 +94,77 @@ async function loadPosts() {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("loadPosts error:", err);
   }
 
   state.loading = false;
   render();
 }
 
-async function handlePostSubmit(e) {
-  e.preventDefault();
+/* ── CREATE POST ── */
+async function createPost(title, content, category) {
+  const user = state.session?.user;
+  if (!user) return alert("Login шаардлагатай");
 
-  if (!state.session) return alert("Login шаардлагатай");
+  const { error } = await state.supabase.from("news_posts").insert({
+    title,
+    content,
+    category,
+    user_id: user.id
+  });
 
-  const title = document.getElementById("titleInput").value;
-  const category = document.getElementById("categoryInput").value;
-  const content = document.getElementById("contentInput").value;
-
-  try {
-    const { error } = await state.supabase
-      .from("news_posts")
-      .insert({
-        title,
-        category,
-        content,
-        user_id: state.session.user.id
-      });
-
-    if (error) throw error;
-
-    await loadPosts();
-    render();
-
-  } catch (err) {
-    console.error(err);
-    alert(err.message);
+  if (error) {
+    console.error(error);
+    return alert(error.message);
   }
-}
 
-async function logout() {
-  await state.supabase.auth.signOut();
-  location.reload();
+  await loadPosts();
 }
 
 /* ── RENDER ── */
-
 function render() {
   const feed = document.getElementById("feed");
   if (!feed) return;
 
   feed.innerHTML = "";
 
-  state.posts.forEach(p => {
+  state.posts.forEach(post => {
     const div = document.createElement("div");
+    div.className = "post-card";
+
     div.innerHTML = `
-      <h3>${p.title}</h3>
-      <p>${p.content}</p>
-      <small>${p.category}</small>
+      <h3>${escapeHtml(post.title)}</h3>
+      <p>${escapeHtml(post.content)}</p>
+      <small>${post.category}</small>
+      <div>❤️ ${post.likesCount}</div>
       <hr/>
     `;
+
     feed.appendChild(div);
   });
+}
+
+/* ── EVENTS ── */
+function bindEvents() {
+  const form = document.getElementById("postForm");
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const title = document.getElementById("titleInput").value;
+    const content = document.getElementById("contentInput").value;
+    const category = document.getElementById("categoryInput").value;
+
+    await createPost(title, content, category);
+
+    form.reset();
+  });
+}
+
+/* ── UTIL ── */
+function escapeHtml(v) {
+  return String(v)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }

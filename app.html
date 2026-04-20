@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="mn">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Самбар — Оюутны Мэдээний Платформ</title>
+    <meta name="theme-color" content="#0f0e17" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="shortcut icon" href="./favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./app.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="./config.js" defer></script>
+    <script src="./app-script.js" defer></script>
+  </head>
+  <body>
+
+    <!-- Animated background orbs (matches landing page) -->
+    <div class="bg-orbs" aria-hidden="true">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <!-- Guest banner -->
+    <div id="guestBanner" class="guest-banner" hidden>
+      <span>Зочин горимд байна — мэдээ нийтлэхийн тулд</span>
+      <a href="./index.html" class="banner-link">нэвтэрнэ үү</a>
+    </div>
+
+    <div class="app-shell">
+
+      <!-- ── TOP NAVBAR ── -->
+      <header class="app-nav">
+        <a href="./app.html" class="nav-brand">
+          <svg width="28" height="28" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <rect width="36" height="36" rx="9" fill="currentColor" opacity="0.15"/>
+            <path d="M8 12h20M8 18h14M8 24h17" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+          <span>ОМП</span>
+        </a>
+
+        <div class="nav-stats">
+          <div class="stat-pill">
+            <span id="postCount">0</span>
+            <label>мэдээ</label>
+          </div>
+          <div class="stat-pill">
+            <span id="likeCount">0</span>
+            <label>лайк</label>
+          </div>
+          <div class="stat-pill">
+            <span id="commentCount">0</span>
+            <label>сэтгэгдэл</label>
+          </div>
+        </div>
+
+        <div class="nav-user" id="navUser"><!-- Filled by JS --></div>
+      </header>
+
+      <!-- ── HERO STRIP ── -->
+      <div class="hero-strip">
+        <div class="hero-text-block">
+          <p class="eyebrow">Сургуулийн Мэдээллийн Самбар</p>
+          <h1>Оюутны Мэдээний Платформ</h1>
+        </div>
+
+        <div class="featured-card" id="featuredStory">
+          <p class="featured-label">Онцлох</p>
+          <h2>Онцлох мэдээг уншиж байна...</h2>
+          <p class="featured-body">Өгөгдөл ачаалагдсаны дараа хамгийн их анхаарал татсан мэдээ энд гарна.</p>
+        </div>
+
+        <div class="hero-right">
+          <div class="connection-row">
+            <span id="connectionBadge" class="connection-badge" data-state="setup">Тохиргоо</span>
+            <button id="refreshButton" type="button" class="refresh-btn" aria-label="Шинэчлэх">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>
+              </svg>
+              Шинэчлэх
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MAIN GRID ── -->
+      <div class="main-grid">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+
+          <!-- Setup card (demo mode only) -->
+          <section id="setupCard" class="card setup-card" hidden>
+            <p class="eyebrow" style="color:var(--gold)">Тохиргоо</p>
+            <h3>Supabase холболт</h3>
+            <p class="card-text">Demo горимд байна. Доорх алхмуудыг хийж database-тай холбоно уу.</p>
+            <ol class="setup-steps">
+              <li><code>config.js</code> дотор URL болон anon key-гээ оруул.</li>
+              <li><code>supabase-setup.sql</code>-ийг Supabase SQL Editor дээр ажиллуул.</li>
+              <li>Email confirm-ийг demo-д унтраавал хурдан болно.</li>
+            </ol>
+          </section>
+
+          <!-- User card (logged in) -->
+          <section id="userCard" class="card user-card" hidden>
+            <div class="user-avatar" id="userAvatar">А</div>
+            <div class="user-info">
+              <p class="user-name" id="userGreeting">Хэрэглэгч</p>
+              <p class="user-email" id="userEmail"></p>
+            </div>
+            <div class="user-actions">
+              <button id="logoutButton" class="btn btn-ghost" type="button">Гарах</button>
+              <button id="jumpComposerButton" class="btn btn-secondary" type="button">Шинэ Мэдээ ↓</button>
+            </div>
+          </section>
+
+          <!-- Composer -->
+          <section id="composer" class="card composer-card">
+            <p id="composerEyebrow" class="eyebrow">Шинэ Мэдээ</p>
+            <h3 id="composerTitle">Мэдээ нийтлэх</h3>
+            <p id="composerHint" class="card-text">Нэвтэрсний дараа мэдээ нийтлэх боломж нээгдэнэ.</p>
+
+            <form id="postForm" class="post-form">
+              <div class="form-field">
+                <label for="titleInput">Гарчиг</label>
+                <input id="titleInput" name="title" type="text" placeholder="Роботын баг аварга боллоо" required />
+              </div>
+              <div class="form-field">
+                <label for="categoryInput">Ангилал</label>
+                <select id="categoryInput" name="category">
+                  <option value="Сургууль">Сургууль</option>
+                  <option value="Арга хэмжээ">Арга хэмжээ</option>
+                  <option value="Спорт">Спорт</option>
+                  <option value="Клуб">Клуб</option>
+                  <option value="Хичээл">Хичээл</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="contentInput">Агуулга</label>
+                <textarea id="contentInput" name="content" rows="4" placeholder="Юу болсон, яагаад чухал болохыг энд бичнэ үү..." required></textarea>
+              </div>
+
+              <!-- Image upload -->
+              <div class="form-field">
+                <label>Зураг (заавал биш)</label>
+                <input type="file" id="imageFileInput" accept="image/jpeg,image/png,image/webp" />
+                <div id="imageUploadArea" class="image-upload-area" role="button" tabindex="0" aria-label="Зураг оруулах">
+                  <span class="upload-icon">🖼️</span>
+                  <p class="upload-hint"><strong>Зургаа чирж тавь</strong> эсвэл дарж сонгоно уу</p>
+                  <span class="upload-hint-sub">JPG, PNG, WEBP · Дээд хэмжээ 5MB</span>
+                </div>
+                <div id="imagePreviewWrap" class="image-preview-wrap" hidden>
+                  <img id="imagePreview" src="" alt="Зургийн урьдчилсан харагдах байдал" />
+                  <button type="button" id="removeImageBtn" class="remove-image-btn" aria-label="Зургийг арилгах">✕</button>
+                </div>
+                <div id="uploadProgress" class="upload-progress" hidden>
+                  <span class="upload-spinner"></span>
+                  <span id="uploadProgressText">Зураг байршуулж байна...</span>
+                </div>
+              </div>
+
+              <div class="composer-actions">
+                <button id="postSubmitButton" class="btn btn-primary" type="submit">Нийтлэх</button>
+                <button id="cancelEditButton" class="btn btn-ghost" type="button" hidden>Цуцлах</button>
+              </div>
+            </form>
+          </section>
+
+        </aside>
+
+        <!-- Feed panel -->
+        <section class="feed-panel">
+          <div class="feed-header">
+            <h2>Сүүлийн мэдээнүүд</h2>
+            <select id="sortSelect" class="sort-select" aria-label="Эрэмбэлэх">
+              <option value="latest">Хамгийн шинэ</option>
+              <option value="liked">Хамгийн их лайк</option>
+            </select>
+          </div>
+
+          <div id="filterBar" class="filter-bar"></div>
+          <div id="statusMessage" class="status-msg" data-tone="info" aria-live="polite"></div>
+          <div id="feed" class="feed-list"></div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- ── POST TEMPLATE ── -->
+    <template id="postTemplate">
+      <article class="news-card">
+        <div class="card-head">
+          <div class="card-meta">
+            <span class="post-category"></span>
+            <span class="meta-sep">·</span>
+            <span class="post-date"></span>
+          </div>
+          <span class="author-chip"></span>
+        </div>
+
+        <h3 class="post-title"></h3>
+        <p class="post-body"></p>
+        <!-- image injected here by JS if present -->
+
+        <div class="card-actions">
+          <button class="like-btn" type="button"></button>
+          <span class="comment-count"></span>
+          <div class="owner-actions" hidden>
+            <button class="edit-btn" type="button">Засах</button>
+            <button class="delete-btn" type="button">Устгах</button>
+          </div>
+        </div>
+
+        <div class="comments-section">
+          <div class="comments-list"></div>
+          <form class="comment-form">
+            <input class="comment-input" type="text" maxlength="220" />
+            <button class="comment-submit-btn" type="submit">Илгээх</button>
+          </form>
+          <p class="comment-note"></p>
+        </div>
+      </article>
+    </template>
+
+  </body>
+</html>
